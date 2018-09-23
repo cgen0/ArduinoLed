@@ -2,13 +2,12 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+
 import _thread
 import mss.tools
-from PIL import Image
 import pyfirmata
 import time
-import colorsys
-
+from PIL import Image
 
 board = pyfirmata.Arduino('/dev/ttyUSB0')
 r = board.get_pin('d:9:o')
@@ -17,9 +16,13 @@ b = board.get_pin('d:11:o')
 r.mode = pyfirmata.PWM
 g.mode = pyfirmata.PWM
 b.mode = pyfirmata.PWM
+
+INTERVAL=0.5
+
+
 global kill
 
-def most_frequent_colour(image):
+def most_frequent_colour2(image):
     w, h = image.size
     pixels = image.getcolors(w * h)
 
@@ -30,10 +33,41 @@ def most_frequent_colour(image):
     return most_frequent_pixel[1]
 
 
+def most_frequent_colour(image):
+    w, h = image.size
+
+    image = image.resize((w, h))
+    result = image.convert('P', palette=Image.ADAPTIVE, colors=1)
+    result.putalpha(0)
+    colors = result.getcolors((w) * (h))
+
+
+    for count, col in colors:
+        color=col
+    return color
+
+
 def setcolor(red,green,blue):
     red,green,blue = convert(red,green,blue)
     r.write(red)
     g.write(green/1.2442)
+    b.write(blue/1.8433)
+
+
+def setred(red):
+    red = red / 255.0
+    r.write(red)
+
+
+def setgreen(green):
+
+    green = green / 255.0
+    g.write(green/1.2442)
+
+
+def setblue(blue):
+
+    blue = blue / 255.0
     b.write(blue/1.8433)
 
 
@@ -44,22 +78,43 @@ def setoff():
 
 
 def fade(red, green, blue, oldred, oldgreen, oldblue):
-    while oldred != red or oldgreen != green or oldblue != blue:
-        if oldred < red:
-            oldred += 1
-        elif oldred > red:
-            oldred -= 1
+    tupr=(red, oldred,'r')
+    tupg=(green, oldgreen,'g')
+    tupb=(blue, oldblue,'b')
+    _thread.start_new_thread(fadethread,tupr)
+    _thread.start_new_thread(fadethread, tupg)
+    _thread.start_new_thread(fadethread, tupb)
+    return
 
-        if oldgreen < green:
-            oldgreen += 1
-        elif oldgreen >green:
-            oldgreen -= 1
-
-        if oldblue < blue:
-            oldblue += 1
-        elif oldblue > blue:
-            oldblue -= 1
-        setcolor(oldred,oldgreen,oldblue)
+def fadethread(new, old,flag):
+    if (old-new)== 0:
+        return
+    Sleep=INTERVAL/abs(old-new)
+    if flag=='r':
+        while old!= new:
+            if old< new:
+                old+= 1
+            elif old> new:
+                old-= 1
+            time.sleep(Sleep)
+            setred(old)
+    if flag=='g':
+        while old!= new:
+            if old< new:
+                old+= 1
+            elif old> new:
+                old-= 1
+            time.sleep(Sleep)
+            setgreen(old)
+    if flag=='b':
+        while old!= new:
+            if old< new:
+                old+= 1
+            elif old> new:
+                old-= 1
+            time.sleep(Sleep)
+            setblue(old)
+    return
 
 
 def convert(r,g,b):
@@ -68,8 +123,6 @@ def convert(r,g,b):
     g= g/ 255.0
     b= b/ 255.0
 
-    h, l, s = colorsys.rgb_to_hls(r, g, b)
-    r, g, b = colorsys.hls_to_rgb(h, l, s)
     return r,g,b
 
 
@@ -77,19 +130,12 @@ def Sync():
     red = 0
     green = 0
     blue = 0
-
-    while kill != 1:
-        with mss.mss() as sct:
-            # The screen part to capture
+    im = Image.open('temp.png')
+    with mss.mss() as sct:
+        while kill != 1:
             monitor = {"top": 780, "left": 0, "width": 1920, "height": 300}
-            output = "temp.png".format(**monitor)
-
-            # Grab the data
             sct_img = sct.grab(monitor)
-
-            # Save to the picture file
-            mss.tools.to_png(sct_img.rgb, sct_img.size, output=output)
-            im = Image.open('temp.png')
+            im = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
             oldred = red
             oldgreen=green
             oldblue=blue
@@ -97,11 +143,13 @@ def Sync():
             red = color[0]
             green = color[1]
             blue = color[2]
-            print (color)
-         
             fade(red,green,blue,oldred,oldgreen,oldblue)
-        time.sleep(1)
+            im.close()
+            time.sleep(INTERVAL)
     return
+
+
+
 
 
 class LedControl(Gtk.Window):

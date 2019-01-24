@@ -20,7 +20,6 @@ b.mode = pyfirmata.PWM
 INTERVAL=0.5
 
 
-global kill
 
 
 
@@ -86,9 +85,13 @@ def fadesingle(old,new,channel):
                 old += 1
             elif old > new:
                 old -= 1
-            if kill!= 2:
+            if kill != 2:
                 old=0
+                setred(old)
+                setgreen(old)
+                setblue(old)
                 return
+
             else:
                 time.sleep(Sleep)
 
@@ -98,6 +101,7 @@ def fadesingle(old,new,channel):
                 setgreen(old)
             elif channel == "b":
                 setblue(old)
+
 
 def fadethread(new, old,flag):
 
@@ -161,6 +165,34 @@ def Sync():
             fade(red,green,blue,oldred,oldgreen,oldblue)
             time.sleep(INTERVAL)
     return
+
+def on_changed(widget):
+    global cred, cgreen, cblue
+    val = widget.get_value()
+    name = widget.get_name()
+    if name == "red":
+        cred = val
+        setcolor(cred, cgreen, cblue)
+
+    elif name == "green":
+         cgreen = val
+         setcolor(cred, cgreen, cblue)
+
+    elif name == "blue":
+        cblue = val
+        setcolor(cred, cgreen, cblue)
+
+    else:
+        print("ERROR: Invalid widget name, in on_changed function")
+
+def color_reset( widgetr, widgetg , widgetb):
+    global cred, cgreen, cblue
+    cred = widgetr.get_value()
+    cgreen = widgetg.get_value()
+    cblue = widgetb.get_value()
+    print(type(cred))
+    setcolor(cred, cgreen, cblue)
+
 
 
 def FadeMode():
@@ -239,10 +271,9 @@ class LedControl(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_border_width(10)
         self.set_size_request(400,200)
-        self.set_resizable(False);
+        self.set_resizable(False)
         vbox = Gtk.VBox()
         hbox = Gtk.Box(spacing=6)
-        global cbox
         self.add(vbox)
         vbox.show()
 
@@ -272,7 +303,7 @@ class LedControl(Gtk.Window):
         self.rScale.set_increments(1, 10)
         self.rScale.set_digits(0)
         self.rScale.set_size_request(160, 35)
-        self.rScale.connect("value-changed", self.on_changed)
+        self.rScale.connect("value-changed", on_changed)
 
         gHbox = Gtk.HBox(True, 0)
         gLabel = Gtk.Label("Green: ")
@@ -284,7 +315,7 @@ class LedControl(Gtk.Window):
         self.gScale.set_increments(1, 10)
         self.gScale.set_digits(0)
         self.gScale.set_size_request(160, 35)
-        self.gScale.connect("value-changed", self.on_changed)
+        self.gScale.connect("value-changed", on_changed)
 
         bHbox = Gtk.HBox(True, 0)
         bLabel = Gtk.Label("Blue: ")
@@ -296,7 +327,7 @@ class LedControl(Gtk.Window):
         self.bScale.set_increments(1, 10)
         self.bScale.set_digits(0)
         self.bScale.set_size_request(160, 35)
-        self.bScale.connect("value-changed", self.on_changed)
+        self.bScale.connect("value-changed", on_changed)
 
         vbox.pack_start(hbox, False, False, 10)
         vbox.pack_start(self.rScale, False, False, 10)
@@ -307,28 +338,23 @@ class LedControl(Gtk.Window):
     def on_button_toggled(self, button, name):
 
         if button.get_active():
-            state = "on"
 
             if name == '1':
                 global kill
-                self.rScale.hide();
-                self.gScale.hide();
-                self.bScale.hide();
-
+                self.rScale.hide()
+                self.gScale.hide()
+                self.bScale.hide()
                 kill = 0
                 setoff()
 
             elif name == '2' :
-                global cred, cgreen,cblue
-                cred=0
-                cgreen=0
-                cblue=0
-                self.color_reset(self.rScale,self.gScale,self.bScale)
+                kill = 0
                 self.rScale.show()
                 self.gScale.show()
                 self.bScale.show()
-                setcolor(cred,cgreen,cblue)
-                kill = 0
+                time.sleep(0.03)
+                color_reset(self.rScale,self.gScale,self.bScale)
+
 
             elif name == '3':
 
@@ -347,40 +373,16 @@ class LedControl(Gtk.Window):
                 setoff()
                 _thread.start_new_thread(FadeMode,())
 
-    def on_changed(self, widget):
-        val = widget.get_value()
-        name = widget.get_name()
-        global cred, cgreen, cblue
-        if name == "red":
-            cred = val
-            setcolor(cred,cgreen,cblue)
 
-        elif name == "green":
-            cgreen = val
-            setcolor(cred,cgreen,cblue)
-
-        elif name == "blue":
-            cblue = val
-            setcolor(cred,cgreen,cblue)
-
-        else:
-            print("ERROR: Invalid widget name, in on_changed function")
-
-    def color_reset(self,widgetr,widgetg,widgetb):
-        global cred, cgreen, cblue
-        cred = widgetr.get_value()
-        cgreen = widgetg.get_value()
-        cblue = widgetb.get_value()
-        setcolor(cred,cgreen,cblue)
 
 
 
 
     def inital_show(self):
         win.show_all()
-        self.rScale.hide();
-        self.gScale.hide();
-        self.bScale.hide();
+        self.rScale.hide()
+        self.gScale.hide()
+        self.bScale.hide()
 
 
 

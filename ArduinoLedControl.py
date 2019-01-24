@@ -80,13 +80,17 @@ def fade(red, green, blue, oldred, oldgreen, oldblue):
 def fadesingle(old,new,channel):
     if (old-new)== 0:
         return
-    Sleep=INTERVAL/abs(old-new)
+    Sleep=0.04
     while old != new:
             if old < new:
                 old += 1
             elif old > new:
                 old -= 1
-            time.sleep(Sleep)
+            if kill!= 2:
+                old=0
+                return
+            else:
+                time.sleep(Sleep)
 
             if channel == "r":
                 setred(old)
@@ -319,7 +323,6 @@ class LedControl(Gtk.Window):
                 cred=0
                 cgreen=0
                 cblue=0
-                self.sScale.hi
                 self.color_reset(self.rScale,self.gScale,self.bScale)
                 self.rScale.show()
                 self.gScale.show()

@@ -22,15 +22,6 @@ INTERVAL=0.5
 
 global kill
 
-def most_frequent_colour2(image):
-    w, h = image.size
-    pixels = image.getcolors(w * h)
-
-    most_frequent_pixel = pixels[0]
-    for count, colour in pixels:
-        if count > most_frequent_pixel[0]:
-            most_frequent_pixel = (count, colour)
-    return most_frequent_pixel[1]
 
 
 def most_frequent_colour(image):
@@ -86,7 +77,26 @@ def fade(red, green, blue, oldred, oldgreen, oldblue):
     _thread.start_new_thread(fadethread, tupb)
     return
 
+def fadesingle(old,new,channel):
+    if (old-new)== 0:
+        return
+    Sleep=INTERVAL/abs(old-new)
+    while old != new:
+            if old < new:
+                old += 1
+            elif old > new:
+                old -= 1
+            time.sleep(Sleep)
+
+            if channel == "r":
+                setred(old)
+            elif channel == "g":
+                setgreen(old)
+            elif channel == "b":
+                setblue(old)
+
 def fadethread(new, old,flag):
+
     if (old-new)== 0:
         return
     Sleep=INTERVAL/abs(old-new)
@@ -117,22 +127,23 @@ def fadethread(new, old,flag):
     return
 
 
+
 def convert(r,g,b):
 
     r= r/ 255.0
     g= g/ 255.0
     b= b/ 255.0
-
     return r,g,b
-
 
 def Sync():
     red = 0
     green = 0
     blue = 0
+
+
     im = Image.open('temp.png')
     with mss.mss() as sct:
-        while kill != 1:
+        while kill == 1:
             monitor = {"top": 780, "left": 0, "width": 1920, "height": 300}
             sct_img = sct.grab(monitor)
             im = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
@@ -144,13 +155,77 @@ def Sync():
             green = color[1]
             blue = color[2]
             fade(red,green,blue,oldred,oldgreen,oldblue)
-            im.close()
             time.sleep(INTERVAL)
     return
 
 
+def FadeMode():
+    oldred = 0
+    oldgreen=0
+    oldblue =0
+    blue=0
+    green=0
+
+    red = 255
+
+    fadesingle(oldred, red, "r")
+
+    oldred = red
+
+    while kill==2:
+        green = 255
+
+        if kill != 2:
+            return
+
+        fadesingle(oldgreen, green, "g")
+
+        if kill != 2:
+
+            return
+
+        oldgreen=green
+        red=0
+
+        fadesingle(oldred, red, "r")
+
+        if kill != 2:
+            return
+
+        oldred=red
+        blue=255
+
+        fadesingle(oldblue, blue,"b")
+
+        if kill != 2:
+            return
+
+        oldblue=blue
+        green = 0
+
+        fadesingle(oldgreen, green, "g")
+
+        if kill != 2:
+            return
+
+        oldgreen = green
+        red = 255
+
+        fadesingle(oldred, red, "r")
+
+        if kill != 2:
+            return
+
+        oldred = red
+        blue=0
 
 
+        fadesingle(oldblue, blue,"b")
+
+        if kill != 2:
+            return
+
+        oldblue=blue
 
 class LedControl(Gtk.Window):
 
@@ -178,6 +253,10 @@ class LedControl(Gtk.Window):
         buttonSync = Gtk.RadioButton.new_with_mnemonic_from_widget(buttonOff,"Sync")
         buttonSync.connect("toggled", self.on_button_toggled, "3")
         hbox.pack_start(buttonSync, True, False, 0)
+
+        buttonFade = Gtk.RadioButton.new_with_mnemonic_from_widget(buttonOff, "Fade")
+        buttonFade.connect("toggled", self.on_button_toggled, "4")
+        hbox.pack_start(buttonFade, True, False, 0)
 
         rHbox = Gtk.HBox(True, 0)
         rLabel = Gtk.Label("Red: ")
@@ -231,28 +310,39 @@ class LedControl(Gtk.Window):
                 self.rScale.hide();
                 self.gScale.hide();
                 self.bScale.hide();
+
+                kill = 0
                 setoff()
-                kill = 1
 
             elif name == '2' :
                 global cred, cgreen,cblue
-                cred = 0
-                cgreen = 0
-                cblue = 0
-                self.rScale.show();
-                self.gScale.show();
-                self.bScale.show();
+                cred=0
+                cgreen=0
+                cblue=0
+                self.sScale.hi
                 self.color_reset(self.rScale,self.gScale,self.bScale)
-		
-                kill = 1
+                self.rScale.show()
+                self.gScale.show()
+                self.bScale.show()
+                setcolor(cred,cgreen,cblue)
+                kill = 0
 
             elif name == '3':
 
-                self.rScale.hide();
-                self.gScale.hide();
-                self.bScale.hide();
-                kill = 0
+                self.rScale.hide()
+                self.gScale.hide()
+                self.bScale.hide()
+                kill = 1
                 _thread.start_new_thread(Sync,())
+
+            elif name == '4':
+
+                self.rScale.hide()
+                self.gScale.hide()
+                self.bScale.hide()
+                kill = 2
+                setoff()
+                _thread.start_new_thread(FadeMode,())
 
     def on_changed(self, widget):
         val = widget.get_value()
@@ -279,6 +369,8 @@ class LedControl(Gtk.Window):
         cgreen = widgetg.get_value()
         cblue = widgetb.get_value()
         setcolor(cred,cgreen,cblue)
+
+
 
 
     def inital_show(self):

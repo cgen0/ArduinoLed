@@ -168,19 +168,20 @@ def Sync():
 
 def on_changed(widget):
     global cred, cgreen, cblue
+
     val = widget.get_value()
     name = widget.get_name()
     if name == "red":
         cred = val
-        setcolor(cred, cgreen, cblue)
+        setred(cred)
 
     elif name == "green":
          cgreen = val
-         setcolor(cred, cgreen, cblue)
+         setgreen(cgreen)
 
     elif name == "blue":
         cblue = val
-        setcolor(cred, cgreen, cblue)
+        setblue(cblue)
 
     else:
         print("ERROR: Invalid widget name, in on_changed function")

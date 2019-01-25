@@ -148,7 +148,6 @@ def Sync():
     green = 0
     blue = 0
 
-
     im = Image.open('temp.png')
     with mss.mss() as sct:
         while kill == 1:
@@ -268,6 +267,10 @@ class LedControl(Gtk.Window):
 
 
     def __init__(self):
+        cred=0
+        cgreen=0
+        cblue=0
+        kill=0
         Gtk.Window.__init__(self, title="LED Control")
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_border_width(10)
@@ -337,11 +340,11 @@ class LedControl(Gtk.Window):
 
 
     def on_button_toggled(self, button, name):
+        global kill
 
         if button.get_active():
 
             if name == '1':
-                global kill
                 self.rScale.hide()
                 self.gScale.hide()
                 self.bScale.hide()

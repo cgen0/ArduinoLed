@@ -30,10 +30,7 @@ def most_frequent_colour(image):
     result = image.convert('P', palette=Image.ADAPTIVE, colors=1)
     result.putalpha(0)
     colors = result.getcolors((w) * (h))
-
-
-    for count, col in colors:
-        color=col
+    color=colors[0][1]
     return color
 
 

@@ -18,7 +18,10 @@ g.mode = pyfirmata.PWM
 b.mode = pyfirmata.PWM
 
 INTERVAL=0.5
-
+cred=0
+cgreen=0
+cblue=0
+kill=0
 
 
 
@@ -163,19 +166,21 @@ def Sync():
     return
 
 def on_changed(widget):
-    global cred, cgreen, cblue
 
     val = widget.get_value()
     name = widget.get_name()
     if name == "red":
+        global cred
         cred = val
         setred(cred)
 
     elif name == "green":
-         cgreen = val
-         setgreen(cgreen)
+        global cgreen
+        cgreen = val
+        setgreen(cgreen)
 
     elif name == "blue":
+        global cblue
         cblue = val
         setblue(cblue)
 
@@ -183,6 +188,7 @@ def on_changed(widget):
         print("ERROR: Invalid widget name, in on_changed function")
 
 def color_reset( widgetr, widgetg , widgetb):
+
     global cred, cgreen, cblue
     cred = widgetr.get_value()
     cgreen = widgetg.get_value()
@@ -264,10 +270,7 @@ class LedControl(Gtk.Window):
 
 
     def __init__(self):
-        cred=0
-        cgreen=0
-        cblue=0
-        kill=0
+
         Gtk.Window.__init__(self, title="LED Control")
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_border_width(10)

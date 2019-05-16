@@ -8,7 +8,6 @@ import subprocess
 import sys
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
-from peak import get_peaks
 from PIL import Image
 from numpy import *
 
@@ -398,8 +397,8 @@ class LedControl(Gtk.Window):
         self.bScale.connect("value-changed", on_changed)
 
         hueHbox = Gtk.HBox(homogeneous=True, spacing=0)
-        hueLabel = Gtk.Label(label="Blue: ")
-        hueHbox.pack_start(bLabel, True, False, 0)
+        hueLabel = Gtk.Label(label="Hue: ")
+        hueHbox.pack_start(hueLabel, True, False, 0)
 
         self.hueScale = Gtk.HScale()
         self.hueScale.set_name(name="hue")
@@ -480,6 +479,7 @@ class LedControl(Gtk.Window):
 
     def inital_show(self):
         win.show_all()
+        self.hueScale.hide()
         self.rScale.hide()
         self.gScale.hide()
         self.bScale.hide()

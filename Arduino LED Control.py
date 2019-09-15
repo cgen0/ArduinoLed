@@ -20,7 +20,7 @@ r.mode = pyfirmata.PWM
 g.mode = pyfirmata.PWM
 b.mode = pyfirmata.PWM
 
-INTERVAL=0
+INTERVAL=0.300
 cred=0
 cgreen=0
 cblue=0
@@ -78,9 +78,7 @@ def most_frequent_colour(image):
 
     image = image.resize((w, h))
     result = image.convert('P', palette=Image.ADAPTIVE, colors=1)
-    result.putalpha(0)
-    colors = result.getcolors((w) * (h))
-    color=colors[0][1]
+    color = result.convert('RGB').load()[1,1]
     return color
 
 
@@ -198,7 +196,6 @@ def Sync():
     green = 0
     blue = 0
 
-    im = Image.open('temp.png')
     with mss.mss() as sct:
         while kill == 1:
             monitor = {"top": 780, "left": 0, "width": 1920, "height": 300}

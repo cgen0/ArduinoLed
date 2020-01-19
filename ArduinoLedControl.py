@@ -5,6 +5,7 @@ import pyfirmata
 import time
 import struct
 import subprocess
+import psutil, os
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from PIL import Image
@@ -28,7 +29,7 @@ kill=0
 tiny=0.1
 RAW_TARGERT = "/tmp/cava.fifo"
 BARS_NUMBER = 1
-OUTPUT_BIT_FORMAT = "1bit"
+OUTPUT_BIT_FORMAT = "8bit"
 bytetype, bytesize, bytenorm = ("H", 2, 65535) if OUTPUT_BIT_FORMAT == "16bit" else ("B", 1, 255)
 
 
@@ -198,24 +199,28 @@ def SyncMode():
 
 def AudioMode():
 
-    subprocess.Popen(["cava"])
+    for proc in psutil.process_iter():
+        # kill others cava process
+        if proc.name() == "cava":
+            proc.kill()
+
+    cava = subprocess.Popen(["cava"])
     fifo = open(RAW_TARGERT, "rb")
     chunk = bytesize * BARS_NUMBER
     fmt = bytetype * BARS_NUMBER
     oldsample=0
     while kill == 3:
         data = fifo.read(chunk)
-        if len(data) < chunk :
-            break
-        #sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
         new_sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
-        #print(sample)
         sample = tiny * new_sample + (1.0 - tiny) * oldsample
         oldsample=sample
-        r,g,b = hsv2rgb((chue),1,sample)
+        r, g, b = hsv2rgb(chue,1,sample)
         setred(r)
         setgreen(g)
         setblue(b)
+    #kill cava process
+    print(cava.pid)
+    os.system('pkill ' + str(cava.pid) + " --signal 9")
     setoff()
 
 def FadeMode():

@@ -5,7 +5,6 @@ import pyfirmata
 import time
 import struct
 import subprocess
-import sys
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from PIL import Image
@@ -26,32 +25,13 @@ cgreen=0
 cblue=0
 chue=0
 kill=0
-tiny=0.5
+tiny=0.1
 RAW_TARGERT = "/tmp/cava.fifo"
 BARS_NUMBER = 1
-OUTPUT_BIT_FORMAT = "8bit"
+OUTPUT_BIT_FORMAT = "1bit"
 bytetype, bytesize, bytenorm = ("H", 2, 65535) if OUTPUT_BIT_FORMAT == "16bit" else ("B", 1, 255)
 
-def audio():
 
-    subprocess.Popen(["cava"])
-    fifo = open(RAW_TARGERT, "rb")
-    chunk = bytesize * BARS_NUMBER
-    fmt = bytetype * BARS_NUMBER
-    oldsample=0
-    while True:
-        data = fifo.read(chunk)
-        #if len(data) < chunk or kill != 3 :
-            #break
-        sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
-        #new_sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
-        print(sample)
-        #sample = tiny * new_sample + (1.0 - tiny) * oldsample
-        #oldsample=sample
-        r,g,b = hsv2rgb((chue),1,sample)
-        setred(r)
-        setgreen(g)
-        setblue(b)
 
 
 
@@ -195,7 +175,7 @@ def convert(r,g,b):
 #def convertHSL(h,l,s):
 
 
-def Sync():
+def SyncMode():
     red = 0
     green = 0
     blue = 0
@@ -216,42 +196,27 @@ def Sync():
             time.sleep(INTERVAL)
     return
 
-def on_changed(widget):
+def AudioMode():
 
-    val = widget.get_value()
-    name = widget.get_name()
-    if name == "red":
-        global cred
-        cred = val
-        setred(cred)
-
-    elif name == "green":
-        global cgreen
-        cgreen = val
-        setgreen(cgreen)
-
-    elif name == "blue":
-        global cblue
-        cblue = val
-        setblue(cblue)
-
-    elif name == "hue":
-        global chue
-        chue = val
-
-
-    else:
-        print("ERROR: Invalid widget name, in on_changed function")
-
-def color_reset( widgetr, widgetg , widgetb):
-
-    global cred, cgreen, cblue
-    cred = widgetr.get_value()
-    cgreen = widgetg.get_value()
-    cblue = widgetb.get_value()
-    setcolor(cred, cgreen, cblue)
-
-
+    subprocess.Popen(["cava"])
+    fifo = open(RAW_TARGERT, "rb")
+    chunk = bytesize * BARS_NUMBER
+    fmt = bytetype * BARS_NUMBER
+    oldsample=0
+    while kill == 3:
+        data = fifo.read(chunk)
+        if len(data) < chunk :
+            break
+        #sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
+        new_sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
+        #print(sample)
+        sample = tiny * new_sample + (1.0 - tiny) * oldsample
+        oldsample=sample
+        r,g,b = hsv2rgb((chue),1,sample)
+        setred(r)
+        setgreen(g)
+        setblue(b)
+    setoff()
 
 def FadeMode():
     oldred = 0
@@ -320,6 +285,46 @@ def FadeMode():
             return
 
         oldblue=blue
+    setoff()
+
+def on_changed(widget):
+
+    val = widget.get_value()
+    name = widget.get_name()
+    if name == "red":
+        global cred
+        cred = val
+        setred(cred)
+
+    elif name == "green":
+        global cgreen
+        cgreen = val
+        setgreen(cgreen)
+
+    elif name == "blue":
+        global cblue
+        cblue = val
+        setblue(cblue)
+
+    elif name == "hue":
+        global chue
+        chue = val
+
+
+    else:
+        print("ERROR: Invalid widget name, in on_changed function")
+
+def color_reset( widgetr, widgetg , widgetb):
+
+    global cred, cgreen, cblue
+    cred = widgetr.get_value()
+    cgreen = widgetg.get_value()
+    cblue = widgetb.get_value()
+    setcolor(cred, cgreen, cblue)
+
+
+
+
 
 class LedControl(Gtk.Window):
 
@@ -337,23 +342,23 @@ class LedControl(Gtk.Window):
         vbox.show()
 
         buttonOff = Gtk.RadioButton.new_with_label_from_widget(None, "Off")
-        buttonOff.connect("toggled", self.on_button_toggled, "1")
+        buttonOff.connect("toggled", self.on_button_toggled, "off")
         hbox.pack_start(buttonOff, True, False, 0)
 
         buttonColor = Gtk.RadioButton.new_with_mnemonic_from_widget(buttonOff, "Color")
-        buttonColor.connect("toggled", self.on_button_toggled, "2")
+        buttonColor.connect("toggled", self.on_button_toggled, "clr")
         hbox.pack_start(buttonColor, True, False, 0)
 
         buttonSync = Gtk.RadioButton.new_with_mnemonic_from_widget(buttonOff,"Sync")
-        buttonSync.connect("toggled", self.on_button_toggled, "3")
+        buttonSync.connect("toggled", self.on_button_toggled, "syn")
         hbox.pack_start(buttonSync, True, False, 0)
 
         buttonFade = Gtk.RadioButton.new_with_mnemonic_from_widget(buttonOff, "Fade")
-        buttonFade.connect("toggled", self.on_button_toggled, "4")
+        buttonFade.connect("toggled", self.on_button_toggled, "fde")
         hbox.pack_start(buttonFade, True, False, 0)
 
         buttonAudio = Gtk.RadioButton.new_with_mnemonic_from_widget(buttonOff, "Audio")
-        buttonAudio.connect("toggled", self.on_button_toggled, "5")
+        buttonAudio.connect("toggled", self.on_button_toggled, "aud")
         hbox.pack_start(buttonAudio, True, False, 0)
 
 
@@ -423,7 +428,7 @@ class LedControl(Gtk.Window):
 
         if button.get_active():
 
-            if name == '1':
+            if name == 'off':
                 self.rScale.hide()
                 self.gScale.hide()
                 self.bScale.hide()
@@ -431,7 +436,7 @@ class LedControl(Gtk.Window):
                 kill = 0
                 setoff()
 
-            elif name == '2' :
+            elif name == 'clr':
                 kill = 0
                 self.rScale.show()
                 self.gScale.show()
@@ -441,16 +446,16 @@ class LedControl(Gtk.Window):
                 color_reset(self.rScale,self.gScale,self.bScale)
 
 
-            elif name == '3':
+            elif name == 'syn':
 
                 self.rScale.hide()
                 self.gScale.hide()
                 self.bScale.hide()
                 self.hueScale.hide()
                 kill = 1
-                _thread.start_new_thread(Sync,())
+                _thread.start_new_thread(SyncMode,())
 
-            elif name == '4':
+            elif name == 'fde':
 
                 self.rScale.hide()
                 self.gScale.hide()
@@ -460,7 +465,7 @@ class LedControl(Gtk.Window):
                 setoff()
                 _thread.start_new_thread(FadeMode,())
 
-            elif name == '5':
+            elif name == 'aud':
 
                 self.rScale.hide()
                 self.gScale.hide()
@@ -468,7 +473,7 @@ class LedControl(Gtk.Window):
                 self.hueScale.show()
                 kill = 3
                 setoff()
-                _thread.start_new_thread(audio,())
+                _thread.start_new_thread(AudioMode,())
 
 
 

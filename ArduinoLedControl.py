@@ -12,7 +12,7 @@ from PIL import Image
 from numpy import *
 
 
-board = pyfirmata.Arduino('/dev/ttyUSB0')
+board = pyfirmata.Arduino('/dev/ttyUSB0', timeout=1)
 r = board.get_pin('d:9:o')
 g = board.get_pin('d:10:o')
 b = board.get_pin('d:11:o')
@@ -26,7 +26,7 @@ cgreen=0
 cblue=0
 chue=0
 kill=0
-
+tiny=0.5
 RAW_TARGERT = "/tmp/cava.fifo"
 BARS_NUMBER = 1
 OUTPUT_BIT_FORMAT = "8bit"
@@ -38,13 +38,17 @@ def audio():
     fifo = open(RAW_TARGERT, "rb")
     chunk = bytesize * BARS_NUMBER
     fmt = bytetype * BARS_NUMBER
-    print (kill)
+    oldsample=0
     while True:
         data = fifo.read(chunk)
-        if len(data) < chunk or kill != 3 :
-            break
-        sample = [i / bytenorm for i in struct.unpack(fmt, data)]
-        r,g,b = hsv2rgb((chue),1,sample[0])
+        #if len(data) < chunk or kill != 3 :
+            #break
+        sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
+        #new_sample = [i / bytenorm for i in struct.unpack(fmt, data)][0]
+        print(sample)
+        #sample = tiny * new_sample + (1.0 - tiny) * oldsample
+        #oldsample=sample
+        r,g,b = hsv2rgb((chue),1,sample)
         setred(r)
         setgreen(g)
         setblue(b)
@@ -466,10 +470,6 @@ class LedControl(Gtk.Window):
                 setoff()
                 _thread.start_new_thread(audio,())
 
-    def on_checked(self, button):
-
-        if button.get_active():
-            _thread.start_new_thread(audio, ())
 
 
 
